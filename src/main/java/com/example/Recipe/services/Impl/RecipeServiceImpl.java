@@ -1,39 +1,41 @@
 package com.example.Recipe.services.Impl;
 
+import com.example.Recipe.log.annotation.LogAnnotation;
 import com.example.Recipe.mapper.RecipeMapper;
 import com.example.Recipe.model.RecipeDTO;
 import com.example.Recipe.repository.RecipeRepository;
 import com.example.Recipe.services.RecipeService;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@LogAnnotation
 @Service
+@Transactional
 public class RecipeServiceImpl implements RecipeService {
     @Autowired
     private RecipeRepository recipeRepository;
     @Autowired
     private RecipeMapper recipeMapper;
+
+    public RecipeServiceImpl(RecipeRepository recipeRepository, RecipeMapper recipeMapper){
+        this.recipeRepository = recipeRepository;
+        this.recipeMapper = recipeMapper;
+    }
     @Override
     public RecipeDTO addRecipe(RecipeDTO recipeDTO) {
-        if (isValidRecipe(recipeDTO)){
-            /*System.out.println(recipeDTO.getId() + " "+ recipeDTO.getName() + " " + recipeDTO.getDate());
-            for (String ing:
-                 ) {
-
-            }*/
             recipeDTO = setLocalDateNow(recipeDTO);
             return recipeMapper.mapToDTO(recipeRepository
                     .save(recipeMapper.mapToDB(recipeDTO)));
-        } else {
-            throw new IllegalArgumentException();
-        }
     }
     @Override
     public void deleteRecipeById(int id) {
@@ -60,22 +62,17 @@ public class RecipeServiceImpl implements RecipeService {
     @Override
     @Modifying
     public void updateRecipe(RecipeDTO recipeDTO, int id) {
-        if (isValidRecipe(recipeDTO)) {
-            if (isExitsById(id)){
-                recipeDTO.setId(id);
-                recipeDTO = setLocalDateNow(recipeDTO);
-                recipeMapper.mapToDTO(recipeRepository
-                        .save(recipeMapper.mapToDB(recipeDTO)));
-            } else {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-            }
+        if (isExitsById(id)) {
+            recipeDTO.setId(id);
+            recipeDTO = setLocalDateNow(recipeDTO);
+            recipeMapper.mapToDTO(recipeRepository
+                    .save(recipeMapper.mapToDB(recipeDTO)));
         } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
     }
 
     @Override
-    //@Query(value = "select r from recipes r where r.category = ?1", nativeQuery = true)
     public List<RecipeDTO> getByCategory(String category) {
         return recipeRepository.findByCategoryIgnoreCaseOrderByDateDesc(category)
                 .stream()
@@ -96,16 +93,5 @@ public class RecipeServiceImpl implements RecipeService {
         return recipeDTO;
     }
 
-    public boolean isValidRecipe (RecipeDTO recipeDTO) {
-        if (recipeDTO.getName() == null|| recipeDTO.getName().isBlank()
-                || recipeDTO.getDescription() == null || recipeDTO.getDescription().isBlank()
-                || recipeDTO.getCategory() == null || recipeDTO.getCategory().isBlank()
-                || recipeDTO.getIngredients() == null || recipeDTO.getDirections() == null
-                || recipeDTO.getIngredients().isEmpty() || recipeDTO.getDirections().isEmpty()
-                || recipeDTO.getDate() != null) {
-            throw new IllegalArgumentException();
-        } else {
-            return true;
-        }
-    }
+
 }

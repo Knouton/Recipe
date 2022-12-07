@@ -1,5 +1,6 @@
 package com.example.Recipe.controller;
 
+import com.example.Recipe.events.publisher.CustomSpringEventPublisher;
 import com.example.Recipe.model.RecipeDTO;
 import com.example.Recipe.services.RecipeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,14 +18,14 @@ import java.util.Optional;
 @RequestMapping("/api/recipe/")
 public class RecipeController {
     private final RecipeService recipeService;
-
+    private  final CustomSpringEventPublisher customSpringEventPublisher;
     @Autowired
-    public RecipeController(RecipeService recipeService) {
+    public RecipeController(RecipeService recipeService, final CustomSpringEventPublisher customSpringEventPublisher) {
         this.recipeService = recipeService;
+        this.customSpringEventPublisher = customSpringEventPublisher;
     }
 
-    @PostMapping(
-            value = "/new")
+    @PostMapping(value = "/new")
     public ResponseEntity<Map<String, Integer>> postRecipe(@RequestBody RecipeDTO recipeDTO) {
         try {
             recipeDTO = recipeService.addRecipe(recipeDTO);
@@ -34,8 +35,9 @@ public class RecipeController {
         }
     }
 
-    @GetMapping( value = "/{id}")
+    @GetMapping(value = "/{id}")
     public RecipeDTO getRecipe(@PathVariable int id) {
+        customSpringEventPublisher.publishCustomEvent("GetMapping :" + id);
         if (recipeService.isExitsById(id))
         {
             return recipeService.getById(id);
@@ -71,9 +73,4 @@ public class RecipeController {
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
     }
-
-    /*@GetMapping(value = "/search/", params = "name")
-    public RecipeDTO searchByName(@RequestParam String name){
-        return recipeService.searchByName(name);
-    }*/
 }
